@@ -2,7 +2,8 @@
   "name": "nebula-app",
   "private": true,
   "scripts": {
-    "build": "./render-build.sh",
+    "build": "npm run render-build && remix vite:build",
+    "render-build": "./render-build.sh",
     "dev": "shopify app dev",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
