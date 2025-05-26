@@ -12,9 +12,16 @@ import {
   List,
   Link,
   InlineStack,
+  Banner,
 } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
+
+type SetupResponse = {
+  success: boolean;
+  message: string;
+  scriptTagId?: string;
+};
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -93,6 +100,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 export default function Index() {
   const fetcher = useFetcher<typeof action>();
+  const setupFetcher = useFetcher<SetupResponse>();
 
   const shopify = useAppBridge();
   const isLoading =
@@ -104,10 +112,19 @@ export default function Index() {
   );
 
   useEffect(() => {
+    if (setupFetcher.state === "idle" && !setupFetcher.data) {
+      console.log("🚀 Auto-running agent API setup...");
+      setupFetcher.load("/api/setup-script");
+    }
+  }, [setupFetcher]);
+
+
+  useEffect(() => {
     if (productId) {
       shopify.toast.show("Product created");
     }
   }, [productId, shopify]);
+  
   const generateProduct = () => fetcher.submit({}, { method: "POST" });
 
   return (
@@ -122,6 +139,20 @@ export default function Index() {
           <Layout.Section>
             <Card>
               <BlockStack gap="500">
+                {/* Setup Status Banner - Add this */}
+              {setupFetcher.data && (
+          <Banner
+            tone={setupFetcher.data.success ? "success" : "critical"}
+            title="Agent API Setup"
+          >
+            {setupFetcher.data.message}
+            {setupFetcher.data.scriptTagId && (
+              <Text as="p" variant="bodyMd">
+                Script Tag ID: {setupFetcher.data.scriptTagId}
+              </Text>
+            )}
+          </Banner>
+        )}
                 <BlockStack gap="200">
                   <Text as="h2" variant="headingMd">
                     Congrats on creating a new Shopify app 🎉
