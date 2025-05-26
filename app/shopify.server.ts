@@ -37,9 +37,9 @@ const shopify = shopifyApp({
         : process.env.SHOPIFY_APP_URL;
   try {
     const themes = await admin.rest.resources.Theme.all({ session });
-    console.log("🎨 Themes fetched:", themes.data.map((t) => ({ id: t.id, name: t.name, role: t.role })));
+    console.log("🎨 Themes fetched:", themes.data.map((t: any) => ({ id: t.id, name: t.name, role: t.role })));
 
-    const mainTheme = themes.data.find((t) => t.role === "main");
+    const mainTheme = themes.data.find((t: any) => t.role === "main");
     if (!mainTheme) {
       console.warn("⚠️ No main theme found");
       return;
