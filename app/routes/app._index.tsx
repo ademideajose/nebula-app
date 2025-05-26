@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { useFetcher } from "@remix-run/react";
+import { json } from "@remix-run/node";
+import { useFetcher, useLoaderData } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -18,19 +19,136 @@ import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 
 type SetupResponse = {
+  type: "setup";
   success: boolean;
   message: string;
   scriptTagId?: string;
 };
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+type ProductResponse = {
+  type: "setup";
+  product: any;
+  variant: any;
+};
+type ActionResponse = SetupResponse | ProductResponse;
 
-  return null;
+type LoaderData = {
+  setupStatus?: SetupResponse;
+};
+
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const { admin, session } = await authenticate.admin(request);
+  
+  // Check script tag status on load
+  try {
+    if (!admin.rest?.resources?.ScriptTag) {
+      return json<LoaderData>({ 
+        setupStatus: { 
+          type: "setup",
+          success: false, 
+          message: "REST resources not configured" 
+        } 
+      });
+    }
+
+    const scriptTagsResponse = await admin.rest.resources.ScriptTag.all({ 
+      session,
+    });
+    const scriptTags = scriptTagsResponse.data || [];
+    
+    const existing = scriptTags.find((tag: any) =>
+      tag.src && tag.src.includes("inject-agent-link")
+    );
+
+    if (existing) {
+      return json<LoaderData>({ 
+        setupStatus: { 
+          type: "setup",
+          success: true, 
+          message: "✅ Agent API already installed",
+          scriptTagId: existing.id ? String(existing.id) : undefined
+        } 
+      });
+    }
+
+    return json<LoaderData>({});
+  } catch (error) {
+    console.error("Error checking script tags:", error);
+    return json<LoaderData>({});
+  }
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
+  
+  const formData = await request.formData();
+  const action = formData.get("action");
+
+  if (action === "setup-script") {
+    try {
+      console.log("🔧 Setting up script tag...");
+
+      // Check if REST resources are available
+      if (!admin.rest?.resources?.ScriptTag) {
+        return json<SetupResponse>({ 
+          type: "setup",
+          success: false, 
+          message: "❌ REST resources not configured. Please add restResources to shopify.server.ts" 
+        });
+      }
+
+      // Get all script tags
+      const scriptTagsResponse = await admin.rest.resources.ScriptTag.all({ 
+        session,
+      });
+      const scriptTags = scriptTagsResponse.data || [];
+      
+      // Check if our script tag already exists
+      const existing = scriptTags.find((tag: any) =>
+        tag.src && tag.src.includes("inject-agent-link")
+      );
+
+      if (existing) {
+        console.log("✅ Script tag already exists:", existing.id);
+        return json<SetupResponse>({ 
+          type: "setup",
+          success: true, 
+          message: "✅ Already installed",
+          scriptTagId: existing.id ? String(existing.id) : undefined
+        });
+      }
+
+      console.log("➕ Creating new script tag...");
+
+      // Create new script tag
+      const scriptTag = new admin.rest.resources.ScriptTag({session});
+      scriptTag.event = "onload";
+      scriptTag.src = `${new URL(request.url).origin}/inject-agent-link.js`;
+      
+      await scriptTag.save({
+        update: true,
+      });
+
+      console.log("🎯 Script tag created successfully:", scriptTag.id);
+      
+      return json<SetupResponse>({ 
+        type: "setup",
+        success: true, 
+        message: "✅ Agent API link installed!",
+        scriptTagId: scriptTag.id ? String(scriptTag.id) : undefined
+      });
+      
+    } catch (error: any) {
+      console.error("❌ Setup error:", error);
+      return json<SetupResponse>({ 
+        type: "setup",
+        success: false, 
+        message: `❌ Failed: ${error?.message || "Unknown error"}`,
+      });
+    }
+  }
+
+  // Handle product generation action
   const color = ["Red", "Orange", "Yellow", "Green"][
     Math.floor(Math.random() * 4)
   ];
@@ -91,32 +209,48 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const variantResponseJson = await variantResponse.json();
 
-  return {
+  return json({
     product: responseJson!.data!.productCreate!.product,
     variant:
       variantResponseJson!.data!.productVariantsBulkUpdate!.productVariants,
-  };
+  });
 };
 
 export default function Index() {
-  const fetcher = useFetcher<typeof action>();
+  const { setupStatus } = useLoaderData<typeof loader>();
+  const fetcher = useFetcher<ActionResponse>();
   const setupFetcher = useFetcher<SetupResponse>();
 
+  // Type guard to check if response has product
+  const hasProduct = (
+    data: unknown
+  ): data is { product: any; variant: any } => {
+    return (
+      typeof data === "object" &&
+      data !== null &&
+      "product" in data &&
+      "variant" in data
+    );
+  };
+  
   const shopify = useAppBridge();
   const isLoading =
     ["loading", "submitting"].includes(fetcher.state) &&
     fetcher.formMethod === "POST";
-  const productId = fetcher.data?.product?.id.replace(
-    "gid://shopify/Product/",
-    "",
-  );
+    
+  const productId = hasProduct(fetcher.data) 
+    ? fetcher.data.product?.id.replace("gid://shopify/Product/", "")
+    : undefined;
 
   useEffect(() => {
-    if (setupFetcher.state === "idle" && !setupFetcher.data) {
+    // Auto-setup script tag if not already installed
+    if (!setupStatus?.success && setupFetcher.state === "idle" && !setupFetcher.data) {
       console.log("🚀 Auto-running agent API setup...");
-      setupFetcher.submit({}, { method: "POST", action: "/api/setup-script" });
+      const formData = new FormData();
+      formData.append("action", "setup-script");
+      setupFetcher.submit(formData, { method: "POST" });
     }
-  }, [setupFetcher]);
+  }, [setupFetcher, setupStatus]);
 
 
   useEffect(() => {
@@ -126,6 +260,9 @@ export default function Index() {
   }, [productId, shopify]);
   
   const generateProduct = () => fetcher.submit({}, { method: "POST" });
+
+  // Use setupFetcher data if available, otherwise use loader data
+  const displayStatus = setupFetcher.data || setupStatus;
 
   return (
     <Page>
@@ -140,16 +277,16 @@ export default function Index() {
             <Card>
               <BlockStack gap="500">
                 {/* Setup Status Banner - Add this */}
-              {setupFetcher.data && (
-          <Banner
-            tone={setupFetcher.data.success ? "success" : "critical"}
-            title="Agent API Setup"
-          >
-            {setupFetcher.data.message}
-            {setupFetcher.data.scriptTagId && (
-              <Text as="p" variant="bodyMd">
-                Script Tag ID: {setupFetcher.data.scriptTagId}
-              </Text>
+              {displayStatus && (
+                  <Banner
+                    tone={displayStatus.success ? "success" : "critical"}
+                    title="Agent API Setup"
+                  >
+                    {displayStatus.message}
+                    {displayStatus.scriptTagId && (
+                      <Text as="p" variant="bodyMd">
+                        Script Tag ID: {displayStatus.scriptTagId}
+                      </Text>
             )}
           </Banner>
         )}
@@ -203,7 +340,7 @@ export default function Index() {
                   <Button loading={isLoading} onClick={generateProduct}>
                     Generate a product
                   </Button>
-                  {fetcher.data?.product && (
+                  {hasProduct(fetcher.data)&& (
                     <Button
                       url={`shopify:admin/products/${productId}`}
                       target="_blank"
@@ -213,7 +350,7 @@ export default function Index() {
                     </Button>
                   )}
                 </InlineStack>
-                {fetcher.data?.product && (
+                {hasProduct(fetcher.data) && (
                   <>
                     <Text as="h3" variant="headingMd">
                       {" "}
