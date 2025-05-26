@@ -3,7 +3,7 @@
 client_id = "65057e4200deff90b71e14f11f2c5da3"
 name = "nebula-app"
 handle = "nebula-app"
-application_url = "https://nebula-app-snhd.onrender.com"
+application_url = "https://enhancement-radius-completed-prior.trycloudflare.com"
 embedded = true
 
 [build]
@@ -27,9 +27,9 @@ scopes = "write_products,read_themes,write_themes"
 
 [auth]
 redirect_urls = [
-  "https://nebula-app-snhd.onrender.com/auth/callback",
-  "https://nebula-app-snhd.onrender.com/auth/shopify/callback",
-  "https://nebula-app-snhd.onrender.com/api/auth/callback"
+  "https://enhancement-radius-completed-prior.trycloudflare.com/auth/callback",
+  "https://enhancement-radius-completed-prior.trycloudflare.com/auth/shopify/callback",
+  "https://enhancement-radius-completed-prior.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]
