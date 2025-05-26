@@ -3,11 +3,11 @@
 client_id = "65057e4200deff90b71e14f11f2c5da3"
 name = "nebula-app"
 handle = "nebula-app"
-application_url = "https://enhancement-radius-completed-prior.trycloudflare.com"
+application_url = "https://nebula-app-snhd.onrender.com"
 embedded = true
 
 [build]
-automatically_update_urls_on_dev = true
+automatically_update_urls_on_dev = false
 include_config_on_deploy = true
 
 [webhooks]
@@ -23,13 +23,13 @@ api_version = "2025-04"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products,read_themes,write_themes"
+scopes = "write_products,read_script_tags,write_script_tags,read_themes,write_themes"
 
 [auth]
 redirect_urls = [
-  "https://enhancement-radius-completed-prior.trycloudflare.com/auth/callback",
-  "https://enhancement-radius-completed-prior.trycloudflare.com/auth/shopify/callback",
-  "https://enhancement-radius-completed-prior.trycloudflare.com/api/auth/callback"
+  "https://nebula-app-snhd.onrender.com/auth/callback",
+  "https://nebula-app-snhd.onrender.com/auth/shopify/callback",
+  "https://nebula-app-snhd.onrender.com/api/auth/callback"
 ]
 
 [pos]
