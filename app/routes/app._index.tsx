@@ -123,7 +123,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       // Create new script tag
       const scriptTag = new admin.rest.resources.ScriptTag({session});
       scriptTag.event = "onload";
-      scriptTag.src = `${new URL(request.url).origin}/inject-agent-link.js`;
+      const appUrl = process.env.SHOPIFY_APP_URL;
+      if (!appUrl) {
+        console.error("❌ SHOPIFY_APP_URL environment variable is not set.");
+        return json<SetupResponse>({ 
+          type: "setup",
+          success: false, 
+          message: "❌ Application URL is not configured in environment variables.",
+        });
+      }
+      scriptTag.src = `${appUrl}/inject-agent-link.js`;
       
       await scriptTag.save({
         update: true,
