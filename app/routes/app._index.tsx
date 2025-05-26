@@ -26,7 +26,7 @@ type SetupResponse = {
 };
 
 type ProductResponse = {
-  type: "setup";
+  type: "product";
   product: any;
   variant: any;
 };
