@@ -31,7 +31,10 @@ const shopify = shopifyApp({
       console.log("🔁 afterAuth triggered for shop:", shop);
       const host = request.headers.get("host");
       const protocol = host?.includes("localhost") ? "http" : "https";
-      const dynamicAppUrl = `${protocol}://${host}`;
+      const dynamicAppUrl =
+      host && !host.includes("localhost")
+        ? `${protocol}://${host}`
+        : process.env.SHOPIFY_APP_URL;
   try {
     const themes = await admin.rest.resources.Theme.all({ session });
     console.log("🎨 Themes fetched:", themes.data.map((t) => ({ id: t.id, name: t.name, role: t.role })));
