@@ -26,57 +26,37 @@ const shopify = shopifyApp({
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
     : {}),
 
-    afterAuth: async ({ session, admin, request }: { session: Session; admin: AdminApiContext; request: Request }) => {
+    afterAuth: async ({ session, admin }: { session: Session; admin: AdminApiContext}) => {
       const { shop } = session;
-      console.log("🔁 afterAuth triggered for shop:", shop);
-      const host = request.headers.get("host");
-      const protocol = host?.includes("localhost") ? "http" : "https";
-      const dynamicAppUrl =
-      host && !host.includes("localhost")
-        ? `${protocol}://${host}`
-        : process.env.SHOPIFY_APP_URL;
+  console.log("🔁 afterAuth triggered for shop:", shop);
+
   try {
-    const themes = await admin.rest.resources.Theme.all({ session });
-    console.log("🎨 Themes fetched:", themes.data.map((t: any) => ({ id: t.id, name: t.name, role: t.role })));
+    // 1. Check existing script tags
+    const existingTagsResponse = await admin.rest.resources.ScriptTag.all({ session });
+    const existing = existingTagsResponse.data.find((tag: any) =>
+      tag.src.includes("inject-agent-link.js")
+    );
 
-    const mainTheme = themes.data.find((t: any) => t.role === "main");
-    if (!mainTheme) {
-      console.warn("⚠️ No main theme found");
+    if (existing) {
+      console.log("✅ Script tag already injected.");
       return;
     }
 
-    const asset = await admin.rest.resources.Asset.find({
+    // 2. Inject your script
+    const created = await admin.rest.resources.ScriptTag.create({
       session,
-      theme_id: mainTheme.id,
-      asset: { key: "layout/theme.liquid" },
-    });
-    const currentValue = asset.body.asset.value;
-
-    const discoveryTag = `
-<link rel="agent-api" type="application/json" href="${dynamicAppUrl}/agent-api/suggest?shop=${shop}" />
-      `;
-
-    if (currentValue.includes('rel="agent-api"')) {
-      console.log("✅ Discovery tag already exists, skipping injection.");
-      return;
-    }
-
-    const updatedValue = currentValue.replace("</head>", `${discoveryTag}\n</head>`);
-    await admin.rest.resources.Asset.update({
-      session,
-      theme_id: mainTheme.id,
-      asset: {
-        key: "layout/theme.liquid",
-        value: updatedValue,
+      body: {
+        event: "onload",
+        src: "https://nebula-app-snhd.onrender.com/inject-agent-link.js",
       },
     });
 
-    console.log("✅ Discovery tag injected successfully.");
-  } catch (error) {
-    console.error("❌ Theme injection failed:", error);
+    console.log("🎯 Script tag injected:", created?.body?.script_tag?.id);
+  } catch (error: any) {
+    console.error("❌ Failed to inject script tag:", error?.response?.errors || error.message);
   }
 },
-
+///
 
 });
 
