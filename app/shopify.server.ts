@@ -7,6 +7,7 @@ import {
   type AdminApiContext,
 } from "@shopify/shopify-app-remix/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
+import { restResources } from "@shopify/shopify-api/rest/admin/2025-01";
 import prisma from "./db.server";
 
 const shopify = shopifyApp({
@@ -18,6 +19,7 @@ const shopify = shopifyApp({
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
+  restResources,
   future: {
     //unstable_newEmbeddedAuthStrategy: true,
     //removeRest: true,
@@ -31,10 +33,16 @@ const shopify = shopifyApp({
   console.log("🔁 afterAuth triggered for shop:", shop);
 
   try {
+    if (!admin.rest?.resources?.ScriptTag) {
+      console.error("❌ REST resources not available");
+      return;
+    }
+
     // 1. Check existing script tags
     const existingTagsResponse = await admin.rest.resources.ScriptTag.all({ session });
-    const existing = existingTagsResponse.data.find((tag: any) =>
-      tag.src.includes("inject-agent-link.js")
+    const existingTags = existingTagsResponse.data || [];
+    const existing = existingTags.find((tag: any) =>
+      tag.src && tag.src.includes("inject-agent-link.js")
     );
 
     if (existing) {
@@ -42,22 +50,20 @@ const shopify = shopifyApp({
       return;
     }
 
-    // 2. Inject your script
-    const created = await admin.rest.resources.ScriptTag.create({
-      session,
-      body: {
-        event: "onload",
-        src: "https://nebula-app-snhd.onrender.com/inject-agent-link.js",
-      },
+    // 2. Create new script tag
+    const scriptTag = new admin.rest.resources.ScriptTag({session});
+    scriptTag.event = "onload";
+    scriptTag.src = "https://nebula-app-snhd.onrender.com/inject-agent-link.js";
+    
+    await scriptTag.save({
+      update: true,
     });
 
-    console.log("🎯 Script tag injected:", created?.body?.script_tag?.id);
+    console.log("🎯 Script tag injected:", scriptTag.id);
   } catch (error: any) {
     console.error("❌ Failed to inject script tag:", error?.response?.errors || error.message);
   }
 },
-///
-
 });
 
 export default shopify;

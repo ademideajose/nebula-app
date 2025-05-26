@@ -9,12 +9,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   console.log("🔧 Manual setup called for:", shop);
 
 
-    // Use the REST resources approach (like your afterAuth)
-    const scriptTagsResponse = await (admin as any).rest.resources.ScriptTag.all({ session });
-    console.log("📋 Script tags response:", scriptTagsResponse?.data?.length || 0, "tags found");
+    // Check if admin and REST resources are available
+    if (!admin || !admin.rest || !admin.rest.resources) {
+      throw new Error("REST resources not configured. Please add restResources to shopify.server.ts");
+    }
+
+    // Get all script tags
+    const scriptTagsResponse  = await admin.rest.resources.ScriptTag.all({ 
+      session,
+    });
     
-    const scriptTagsData = scriptTagsResponse.body as any;
-    const scriptTags = scriptTagsData?.script_tags || [];
+    // Extract the data array from the response
+    const scriptTags = scriptTagsResponse.data || [];
+
     console.log("📋 Found script tags:", scriptTags.length);
 
 
@@ -33,26 +40,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     console.log("➕ Creating new script tag...");
 
-    // Create new script tag using direct REST API
-    const result = await admin.rest.post({
-      path: "script_tags",
-      data: {
-        script_tag: {
-          event: "onload",
-          src: `${new URL(request.url).origin}/inject-agent-link`,
-        },
-      },
-    });
-
-    console.log("📦 Script tag creation response status:", result.status);
+    // Create new script tag
+    const scriptTag = new admin.rest.resources.ScriptTag({session});
+    scriptTag.event = "onload";
+    scriptTag.src = `${new URL(request.url).origin}/inject-agent-link.js`;
     
-    const resultData = result.body as any;
-    const scriptTag = resultData?.script_tag;
-
-    if (!scriptTag?.id) {
-      console.error("❌ No script tag ID in response:", scriptTag);
-      throw new Error("Script tag creation failed - no ID returned");
-    }
+    await scriptTag.save({
+      update: true,
+    });
 
     console.log("🎯 Script tag created successfully:", scriptTag.id);
     
