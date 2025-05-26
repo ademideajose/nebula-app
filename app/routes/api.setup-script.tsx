@@ -13,7 +13,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const scriptTagsResponse = await (admin as any).rest.resources.ScriptTag.all({ session });
     console.log("📋 Script tags response:", scriptTagsResponse?.data?.length || 0, "tags found");
     
-    const scriptTags = scriptTagsResponse.data || [];
+    const scriptTagsData = scriptTagsResponse.body as any;
+    const scriptTags = scriptTagsData?.script_tags || [];
+    console.log("📋 Found script tags:", scriptTags.length);
+
 
     const existing = scriptTags.find((tag: any) =>
       tag.src && tag.src.includes("inject-agent-link")
@@ -30,30 +33,33 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     console.log("➕ Creating new script tag...");
 
-    // Create new script tag using your local route
-    const scriptTag = await (admin as any).rest.resources.ScriptTag.create({
-      session,
-      body: {
-        event: "onload",
-        src: `${new URL(request.url).origin}/inject-agent-link`,
+    // Create new script tag using direct REST API
+    const result = await admin.rest.post({
+      path: "script_tags",
+      data: {
+        script_tag: {
+          event: "onload",
+          src: `${new URL(request.url).origin}/inject-agent-link`,
+        },
       },
     });
 
-    console.log("📦 Script tag creation response:", scriptTag?.body?.script_tag?.id);
+    console.log("📦 Script tag creation response status:", result.status);
     
-    const createdTag = scriptTag?.body?.script_tag;
-    
-    if (!createdTag?.id) {
-      console.error("❌ No script tag ID in response:", createdTag);
+    const resultData = result.body as any;
+    const scriptTag = resultData?.script_tag;
+
+    if (!scriptTag?.id) {
+      console.error("❌ No script tag ID in response:", scriptTag);
       throw new Error("Script tag creation failed - no ID returned");
     }
 
-    console.log("🎯 Script tag created successfully:", createdTag.id);
+    console.log("🎯 Script tag created successfully:", scriptTag.id);
     
     return json({ 
       success: true, 
       message: "✅ Agent API link installed!",
-      scriptTagId: createdTag.id 
+      scriptTagId: scriptTag.id
     });
     
   } catch (error: any) {
