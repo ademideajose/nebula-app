@@ -1,20 +1,20 @@
-import { type LoaderFunctionArgs, json } from "@remix-run/node";
+import { type ActionFunctionArgs, json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
+export const action = async ({ request }: ActionFunctionArgs) => {
+  try {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
 
   console.log("🔧 Manual setup called for:", shop);
 
-  try {
-    // Check if script tag already exists
-    const scriptTagsResponse = await admin.rest.get({ path: "script_tags" });
+
+    // Use the REST resources approach (like your afterAuth)
+    const scriptTagsResponse = await (admin as any).rest.resources.ScriptTag.all({ session });
+    console.log("📋 Script tags response:", scriptTagsResponse?.data?.length || 0, "tags found");
     
-    // Parse the response properly
-    const scriptTagsData = scriptTagsResponse.body as any;
-    const scriptTags = scriptTagsData?.script_tags || [];
-    
+    const scriptTags = scriptTagsResponse.data || [];
+
     const existing = scriptTags.find((tag: any) =>
       tag.src && tag.src.includes("inject-agent-link")
     );
@@ -28,39 +28,47 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       });
     }
 
-    // Create new script tag pointing to your hosted script
-    const result = await admin.rest.post({
-      path: "script_tags",
-      data: {
-        script_tag: {
-          event: "onload",
-          src: `${new URL(request.url).origin}/inject-agent-link`,
-        },
+    console.log("➕ Creating new script tag...");
+
+    // Create new script tag using your local route
+    const scriptTag = await (admin as any).rest.resources.ScriptTag.create({
+      session,
+      body: {
+        event: "onload",
+        src: `${new URL(request.url).origin}/inject-agent-link`,
       },
     });
 
-    // Parse the creation response
-    const resultData = result.body as any;
-    const scriptTag = resultData?.script_tag;
-
-    if (!scriptTag?.id) {
-      throw new Error("Script tag creation response malformed");
+    console.log("📦 Script tag creation response:", scriptTag?.body?.script_tag?.id);
+    
+    const createdTag = scriptTag?.body?.script_tag;
+    
+    if (!createdTag?.id) {
+      console.error("❌ No script tag ID in response:", createdTag);
+      throw new Error("Script tag creation failed - no ID returned");
     }
 
-    console.log("🎯 Script tag created:", scriptTag?.id);
+    console.log("🎯 Script tag created successfully:", createdTag.id);
     
     return json({ 
       success: true, 
       message: "✅ Agent API link installed!",
-      scriptTagId: scriptTag?.id 
+      scriptTagId: createdTag.id 
     });
     
   } catch (error: any) {
-    const errorMessage = error?.message || JSON.stringify(error);
-    console.error("❌ Setup error:", errorMessage);
+    console.error("❌ Setup error details:", {
+      message: error?.message,
+      response: error?.response,
+      status: error?.status,
+      fullError: error
+    });
+    
+    const errorMessage = error?.message || error?.toString() || "Unknown error occurred";
+    
     return json({ 
       success: false, 
-      message: `❌ Failed: ${error.message}`,
+      message: `❌ Failed: ${errorMessage}`,
     }, { status: 500 });
   }
 };

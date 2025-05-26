@@ -114,7 +114,7 @@ export default function Index() {
   useEffect(() => {
     if (setupFetcher.state === "idle" && !setupFetcher.data) {
       console.log("🚀 Auto-running agent API setup...");
-      setupFetcher.load("/api/setup-script");
+      setupFetcher.submit({}, { method: "POST", action: "/api/setup-script" });
     }
   }, [setupFetcher]);
 
