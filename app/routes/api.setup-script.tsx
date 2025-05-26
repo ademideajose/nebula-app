@@ -34,7 +34,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       data: {
         script_tag: {
           event: "onload",
-          src: "https://nebula-app-snhd.onrender.com/inject-agent-link.js",
+          src: `${new URL(request.url).origin}/inject-agent-link`,
         },
       },
     });

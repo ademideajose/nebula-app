@@ -17,7 +17,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     const currentValue = asset.body.asset.value;
     const discoveryTag = `
-<link rel="agent-api" type="application/json" href="https://agent.nebula.com/agent-api/suggest?shop=${shop}" />`;
+<link rel="agent-api" type="application/json" href="https://nebula-app-snhd.onrender.com/agent-api/suggest?shop=${shop}"/>`;
 
     if (!currentValue.includes('rel="agent-api"')) {
       const updatedValue = currentValue.replace("</head>", `${discoveryTag}\n</head>`);
