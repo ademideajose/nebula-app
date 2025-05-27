@@ -38,6 +38,23 @@ const shopify = shopifyApp({
       return;
     }
 
+     // 2. Notify the Agentic Commerce API backend
+     try {
+      await fetch("https://agentic-commerce-api.onrender.com/auth/shopify/init", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          shop: session.shop,
+          accessToken: session.accessToken
+        })
+      });
+      console.log("✅ Sent shop + token to agentic API");
+    } catch (err) {
+      console.error("❌ Failed to notify agentic API", err);
+    }
+
     // 1. Check existing script tags
     const existingTagsResponse = await admin.rest.resources.ScriptTag.all({ session });
     const existingTags = existingTagsResponse.data || [];
