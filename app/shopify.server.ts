@@ -34,7 +34,7 @@ const shopify = shopifyApp({
       const { shop } = session; // shop is available from session
       shopify.registerWebhooks({ session }); // Good practice
       console.log("🔁 afterAuth triggered for shop:", shop);
-
+/*
       // ----- SCRIPT TAG INJECTION LOGIC -----
       try {
         // Ensure admin context and ScriptTag resource are available
@@ -75,7 +75,7 @@ const shopify = shopifyApp({
         console.error("❌ Failed to inject or manage script tag:", error?.response?.errors || error.message, error.stack);
       }
       // ----- END SCRIPT TAG INJECTION LOGIC -----
-
+ */
 
       // ----- NOTIFY NESTJS API (AGENTIC-COMMERCE-API) -----
       // This is the part that passes the token and scopes
