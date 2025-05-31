@@ -35,47 +35,6 @@ const shopify = shopifyApp({
       shopify.registerWebhooks({ session }); // Good practice
       console.log("🔁 afterAuth triggered for shop:", shop);
 
-      // ----- SCRIPT TAG INJECTION LOGIC -----
-      try {
-        // Ensure admin context and ScriptTag resource are available
-        if (!admin || !admin.rest || !admin.rest.resources || !admin.rest.resources.ScriptTag) {
-          console.error("❌ Admin REST resources or ScriptTag not available in afterAuth context. Cannot manage script tags.");
-        } else {
-          const scriptTagService = new admin.rest.resources.ScriptTag({ session }); // Use the passed session
-          const existingTagsResponse = await scriptTagService.all(); // Fetch all script tags for the session
-          const existingTags = existingTagsResponse.data || [];
-          const nebulaScriptTag = existingTags.find((tag: any) => // Use 'any' or a proper ScriptTag type
-            tag.src && tag.src.includes("inject-agent-link.js")
-          );
-
-          const expectedScriptUrl = `${process.env.SHOPIFY_APP_URL}/inject-agent-link.js`; // Use env var for app URL
-
-          if (nebulaScriptTag) {
-            console.log(`✅ Script tag already injected with src: ${nebulaScriptTag.src}. Expected: ${expectedScriptUrl}`);
-            if (nebulaScriptTag.src !== expectedScriptUrl) {
-              console.warn(`⚠️ Script tag src mismatch. Deleting old tag and re-injecting.`);
-              await scriptTagService.delete({ id: nebulaScriptTag.id });
-              // Re-create after delete
-              const newScriptTag = new admin.rest.resources.ScriptTag({ session });
-              newScriptTag.event = "onload";
-              newScriptTag.src = expectedScriptUrl;
-              await newScriptTag.save({ update: false }); // save as new, not update
-              console.log("🎯 Corrected script tag re-injected:", newScriptTag.id);
-            }
-          } else {
-            console.log("Script tag not found. Injecting new script tag.");
-            const newScriptTag = new admin.rest.resources.ScriptTag({ session });
-            newScriptTag.event = "onload";
-            newScriptTag.src = expectedScriptUrl; // Use the defined expected URL
-            await newScriptTag.save({ update: false }); // Create new tag
-            console.log("🎯 New script tag injected:", newScriptTag.id);
-          }
-        }
-      } catch (error: any) {
-        console.error("❌ Failed to inject or manage script tag:", error?.response?.errors || error.message, error.stack);
-      }
-      // ----- END SCRIPT TAG INJECTION LOGIC -----
-
       // ----- NOTIFY NESTJS API (AGENTIC-COMMERCE-API) -----
       // This is the part that passes the token and scopes
       // The `session` object from `afterAuth` should contain the offline token and granted scopes.
