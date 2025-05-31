@@ -65,7 +65,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         setupStatus: { 
           type: "setup",
           success: true, 
-          message: "✅ Agent API already installed",
+          message: "✅ Discovery link installed (central spec)",
           scriptTagId: existing.id ? String(existing.id) : undefined
         } 
       });
@@ -143,7 +143,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json<SetupResponse>({ 
         type: "setup",
         success: true, 
-        message: "✅ Agent API link installed!",
+        message: "✅ Discovery link installed (central spec)",
         scriptTagId: scriptTag.id ? String(scriptTag.id) : undefined
       });
       
