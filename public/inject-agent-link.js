@@ -38,7 +38,7 @@
   link.rel = 'agent-api';
   link.type = 'application/vnd.openapi+json;version=3.0';
   link.href =
-    'https://agentic-commerce-api.onrender.com/.well-known/agent-commerce-openapi.json?shop=' +
+    'https://agentic-commerce-api.onrender.com/agent-api/.well-known/agent-commerce-openapi.json?shop=' +
     encodeURIComponent(shop);
   link.title = `${prettyStoreName(shop)} Agent Commerce API`;
 
