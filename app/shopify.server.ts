@@ -49,16 +49,36 @@ const shopify = shopifyApp({
 
           // The target endpoint in your NestJS API
           const initEndpoint = `${nestJsApiUrl}/agent-api/auth/shopify/init`;
+          // NEW VERSION (improved with conditional logic):
+          const frontendDomain = session.shop.replace(/-v\d+/, '');
+
+          // Only send frontendDomain if it's different from backend domain
+          const shouldSendMapping = frontendDomain !== session.shop;
 
           console.log(`📞 Calling NestJS init endpoint: ${initEndpoint}`);
+          console.log(`🔗 Backend domain: ${session.shop}, Frontend domain: ${frontendDomain}`);
+
+          // Build the payload object step by step
+          const payload: {
+            shop: string;
+            accessToken: string;
+            scopes: string;
+            frontendDomain?: string; // Optional property
+          } = {
+            shop: session.shop,
+            accessToken: session.accessToken,
+            scopes: session.scope
+          };
+
+          // Only add frontendDomain if it's different
+          if (shouldSendMapping) {
+            payload.frontendDomain = frontendDomain;
+          }
+
           const response = await fetch(initEndpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              shop: session.shop,
-              accessToken: session.accessToken, // This should be the offline token
-              scopes: session.scope,           // <<< 2. SENDING THE SCOPES
-            }),
+            body: JSON.stringify(payload),
           });
 
           if (!response.ok) {

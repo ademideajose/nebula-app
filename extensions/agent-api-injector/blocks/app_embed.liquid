@@ -1,13 +1,13 @@
 {% comment %}
   App Embed Block for Agent API Discovery Link
-  This will inject the agent-api discovery link directly into the <head>
+  Uses {{ request.host }} to get the currently accessed domain
   File: extensions/agent-api-injector/blocks/app_embed.liquid
 {% endcomment %}
 
 <link
   rel="agent-api"
   type="application/vnd.openapi+json;version=3.0"
-  href="https://agentic-commerce-api.onrender.com/agent-api/.well-known/agent-commerce-openapi.json?shop={{ shop.permanent_domain }}"
+  href="https://agentic-commerce-api.onrender.com/agent-api/.well-known/agent-commerce-openapi.json?shop={{ request.host }}"
   title="{{ shop.name }} Agent Commerce API"
 />
 
@@ -18,7 +18,7 @@
   "settings": [
     {
       "type": "paragraph",
-      "content": "This block automatically injects the Agent API discovery link into your store's head section, enabling AI agents to discover and interact with your store's API. No configuration required - it works automatically when enabled."
+      "content": "This block automatically injects the Agent API discovery link into your store's head section, enabling AI agents to discover and interact with your store's API. Uses the currently accessed domain for maximum compatibility."
     }
   ]
 }
