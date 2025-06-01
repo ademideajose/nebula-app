@@ -1,0 +1,18 @@
+{% comment %}
+  App Embed Block for Agent API Discovery Link
+  This will inject the agent-api discovery link directly into the <head>
+  File: extensions/agent-api-injector/blocks/app_embed.liquid
+{% endcomment %}
+
+<link
+  rel="agent-api"
+  type="application/vnd.openapi+json;version=3.0"
+  href="https://agentic-commerce-api.onrender.com/agent-api/.well-known/agent-commerce-openapi.json?shop={{ shop.permanent_domain }}"
+  title="{{ shop.name }} Agent Commerce API"
+/>
+
+{% comment %}
+  Using shop.permanent_domain (e.g., your-store.myshopify.com) provides a stable,
+  unique identifier that doesn't change if custom domains are modified.
+  shop.name provides a human-friendly title for the link.
+{% endcomment %}
