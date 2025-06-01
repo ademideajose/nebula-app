@@ -11,8 +11,15 @@
   title="{{ shop.name }} Agent Commerce API"
 />
 
-{% comment %}
-  Using shop.permanent_domain (e.g., your-store.myshopify.com) provides a stable,
-  unique identifier that doesn't change if custom domains are modified.
-  shop.name provides a human-friendly title for the link.
-{% endcomment %}
+{% schema %}
+{
+  "name": "Agent API Discovery",
+  "target": "head",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "This block automatically injects the Agent API discovery link into your store's head section, enabling AI agents to discover and interact with your store's API. No configuration required - it works automatically when enabled."
+    }
+  ]
+}
+{% endschema %}

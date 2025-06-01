@@ -5,12 +5,3 @@ type = "theme"
 [[blocks]]
 type = "app_embed"
 name = "Agent API Discovery"
-target = "head"
-
-[blocks.settings]
-[[blocks.settings.settings]]
-type = "paragraph"
-id = "description"
-label = "Description"
-info = "This block automatically injects the Agent API discovery link into your store's head section, enabling AI agents to discover and interact with your store's API."
-default = "Agent API Discovery is enabled for this store."
