@@ -1,15 +1,49 @@
 {% comment %}
   App Embed Block for Agent API Discovery Link
-  Uses {{ request.host }} to get the currently accessed domain
-  File: extensions/agent-api-injector/blocks/app_embed.liquid
+  This puts the discovery info directly in the static HTML
 {% endcomment %}
 
+<!-- Primary discovery method - in head -->
 <link
   rel="agent-api"
   type="application/vnd.openapi+json;version=3.0"
   href="https://agentic-commerce-api.onrender.com/agent-api/.well-known/agent-commerce-openapi.json?shop={{ request.host }}"
   title="{{ shop.name }} Agent Commerce API"
 />
+
+<!-- Meta tags for additional discovery methods -->
+<meta name="agent-api-url" content="https://agentic-commerce-api.onrender.com/agent-api/.well-known/agent-commerce-openapi.json?shop={{ request.host }}" />
+<meta name="agent-api-type" content="application/vnd.openapi+json;version=3.0" />
+<meta name="agent-api-shop" content="{{ request.host }}" />
+<meta name="shopify-agent-commerce" content="enabled" />
+
+<!-- JSON-LD structured data in head -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebAPI",
+  "name": "{{ shop.name }} Agent Commerce API",
+  "url": "https://agentic-commerce-api.onrender.com/agent-api/.well-known/agent-commerce-openapi.json?shop={{ request.host }}",
+  "documentation": "https://agentic-commerce-api.onrender.com/agent-api/.well-known/agent-commerce-openapi.json?shop={{ request.host }}",
+  "provider": {
+    "@type": "Organization",
+    "name": "{{ shop.name }}"
+  },
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "https://agentic-commerce-api.onrender.com/agent-api/products?shop={{ request.host }}&q={search_term}"
+    },
+    "query-input": "required name=search_term"
+  }
+}
+</script>
+
+<!-- Visible but hidden div for body content discovery -->
+<div style="display: none;" data-agent-api="https://agentic-commerce-api.onrender.com/agent-api/.well-known/agent-commerce-openapi.json?shop={{ request.host }}" data-agent-type="openapi" data-shop="{{ request.host }}">
+  Agent API Discovery: https://agentic-commerce-api.onrender.com/agent-api/.well-known/agent-commerce-openapi.json?shop={{ request.host }}
+</div>
 
 {% schema %}
 {
@@ -18,7 +52,7 @@
   "settings": [
     {
       "type": "paragraph",
-      "content": "This block automatically injects the Agent API discovery link into your store's head section, enabling AI agents to discover and interact with your store's API. Uses the currently accessed domain for maximum compatibility."
+      "content": "This block automatically injects comprehensive Agent API discovery information into your store's HTML, enabling AI agents to discover and interact with your store's API through multiple methods including link tags, meta tags, JSON-LD, and hidden content."
     }
   ]
 }
